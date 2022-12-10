@@ -11,7 +11,7 @@ namespace TestArbitageBotOnAPI.Entity
         /// <summary>
         /// Price.инстр 1 - Price.инстр 2
         /// </summary>
-        DelltaPrices,
+        DeltaPrices,
 
         /// <summary>
         /// ( А(фьючерс) - А(спот) ) / А(спот)

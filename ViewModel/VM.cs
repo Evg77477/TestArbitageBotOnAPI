@@ -117,7 +117,7 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         public List<SpreadFormulas> Formulas { get; set; } = new List<SpreadFormulas>()
         {
-            SpreadFormulas.DelltaPrices, SpreadFormulas.Percent
+            SpreadFormulas.DeltaPrices, SpreadFormulas.Percent
         };
 
         public decimal Slippage
@@ -563,16 +563,16 @@ namespace TestArbitageBotOnAPI.ViewModel
         {
             SpreadFormulas formula = Formula;
 
-            if (formula == SpreadFormulas.DelltaPrices)
+            if (formula == SpreadFormulas.DeltaPrices)
             {
-                Spread = Math.Abs(SelectedSpotSymbol.Price - SelectedFuturesSymbol.Price);
-                OnPropertyChanged(nameof(Spread));
+                Spread = Math.Abs(SelectedSpotSymbol.Price - SelectedFuturesSymbol.Price);                
             }
             else if (formula == SpreadFormulas.Percent)
             {
                 Spread = Math.Abs((SelectedFuturesSymbol.Price - SelectedSpotSymbol.Price) * 100
                     / SelectedSpotSymbol.Price);
             }
+            OnPropertyChanged(nameof(Spread));
         }
 
         private void StartStop(object obj)
@@ -582,7 +582,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             if (IsRun
                 && (SelectedSpotSymbol != null
                 && SelectedFuturesSymbol != null)
-                && StateOfConnect == "Disconnect") // Изменить на противоположное
+                && StateOfConnect == "Connect") // Изменить на противоположное
             {
                 this.ChangeSpread += VM_ChangeSpread;
                 
@@ -676,14 +676,15 @@ namespace TestArbitageBotOnAPI.ViewModel
         {
             using (var client = new BinanceClient())
             {                
-                
                 var result = await client.SpotApi.Trading.PlaceOrderAsync(SelectedSpotSymbol.Symbol, 
                     OrderSide.Buy, SpotOrderType.Limit, Lot, price: SelectedSpotSymbol.Price, 
                     timeInForce: TimeInForce.GoodTillCanceled);
                 if (result.Success)
-                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK, MessageBoxImage.Information);
+                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
                 else
-                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}", 
+                        "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -695,9 +696,11 @@ namespace TestArbitageBotOnAPI.ViewModel
                     OrderSide.Sell, SpotOrderType.Limit, Lot, price: SelectedSpotSymbol.Price, 
                     timeInForce: TimeInForce.GoodTillCanceled);
                 if (result.Success)
-                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK, MessageBoxImage.Information);
+                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK, 
+                        MessageBoxImage.Information);
                 else
-                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}", 
+                        "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -711,9 +714,11 @@ namespace TestArbitageBotOnAPI.ViewModel
 
 
                 if (result.Success)
-                    messageBoxService.ShowMessage("Order Futures placed!", "Sucess", MessageBoxButton.OK, MessageBoxImage.Information);
+                    messageBoxService.ShowMessage("Order Futures placed!", "Sucess", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 else
-                    messageBoxService.ShowMessage($"Order Futures placing failed: {result.Error.Message}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Order Futures placing failed: {result.Error.Message}", 
+                        "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -722,8 +727,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             using (var client = new BinanceClient())
             {
                 var result = await client.UsdFuturesApi.Trading.PlaceOrderAsync(SelectedFuturesSymbol.Symbol, 
-                    OrderSide.Sell,
-                    FuturesOrderType.Limit, Lot, price: SelectedFuturesSymbol.Price,
+                    OrderSide.Sell, FuturesOrderType.Limit, Lot, price: SelectedFuturesSymbol.Price,
                     timeInForce: TimeInForce.GoodTillCanceled);
 
 
@@ -761,7 +765,8 @@ namespace TestArbitageBotOnAPI.ViewModel
                     })); 
                 }
                 else
-                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", 
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -776,11 +781,10 @@ namespace TestArbitageBotOnAPI.ViewModel
             using (var client = new BinanceClient())
             {
                 var result = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
-                    
-                   
+
                 //if (result.Success)
                 //{
-                //    SelectedFuturesSymbol.FuturesPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
+                //    SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
                 //    {
                 //        Symbol = o.Symbol,
                 //        EntryPrice = o.EntryPrice,
@@ -793,7 +797,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                 //    }));
                 //}
                 //else
-                //    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", 
+                //    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
                 //        "error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -878,7 +882,8 @@ namespace TestArbitageBotOnAPI.ViewModel
                     }));
                 }
                 else
-                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", 
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -922,14 +927,16 @@ namespace TestArbitageBotOnAPI.ViewModel
                 
                 if (!startSpotOkay.Success)
                 {
-                    messageBoxService.ShowMessage($"Error starting user stream: {startSpotOkay.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Error starting user stream: {startSpotOkay.Error.Message}", 
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
                 var startFuturesOkay = await client.UsdFuturesApi.Account.StartUserStreamAsync();
                 if (!startFuturesOkay.Success)
                 {
-                    messageBoxService.ShowMessage($"Error starting user stream: {startFuturesOkay.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Error starting user stream: {startFuturesOkay.Error.Message}", 
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -943,26 +950,32 @@ namespace TestArbitageBotOnAPI.ViewModel
                 }
 
 
-                //var subSpotOkay = await socketClient.SpotStreams.SubscribeToUserDataUpdatesAsync(startSpotOkay.Data, OnOrderUpdate, null, OnAccountUpdate, null);
+                //var subSpotOkay = await socketClientSpot.SpotStreams.SubscribeToUserDataUpdatesAsync(startSpotOkay.Data, OnSpotOrderUpdate, null, 
+                //    /*OnAccountUpdate, */null);
                 //if (!subSpotOkay.Success)
                 //{
-                //    messageBoxService.ShowMessage($"Error subscribing to user stream: {subSpotOkay.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                //    messageBoxService.ShowMessage($"Error subscribing to user stream: {subSpotOkay.Error.Message}", 
+                //        "error", MessageBoxButton.OK, MessageBoxImage.Error);
                 //    return;
                 //}
 
-                //var subFuturesOkay = await socketClient.SpotStreams.SubscribeToUserDataUpdatesAsync(startFuturesOkay.Data, OnOrderUpdate, null, OnAccountUpdate, null);
+                //var subFuturesOkay = await socketClientFutures.UsdFuturesStreams.SubscribeToUserDataUpdatesAsync(startFuturesOkay.Data, 
+                //    OnSpotOrderUpdate, null, OnAccountUpdate, null);
                 //if (!subSpotOkay.Success)
                 //{
-                //    messageBoxService.ShowMessage($"Error subscribing to user stream: {subFuturesOkay.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                //    messageBoxService.ShowMessage($"Error subscribing to user stream: {subFuturesOkay.Error.Message}", 
+                //        "error", MessageBoxButton.OK, MessageBoxImage.Error);
                 //    return;
                 //}
 
 
                 var accountSpotResult = await client.SpotApi.Account.GetAccountInfoAsync();
                 if (accountSpotResult.Success)
-                    Assets = new ObservableCollection<AssetViewModel>(accountSpotResult.Data.Balances.Where(b => b.Available != 0 | b.Locked != 0).Select(b => new AssetViewModel() { Asset = b.Asset, Free = b.Available, Locked = b.Locked }).ToList());
+                    Assets = new ObservableCollection<AssetViewModel>(accountSpotResult.Data.Balances.Where(b => b.Available != 0 | b.Locked != 0).Select(b => new AssetViewModel() 
+                    { Asset = b.Asset, Free = b.Available, Locked = b.Locked }).ToList());
                 else
-                    messageBoxService.ShowMessage($"Error requesting account info: {accountSpotResult.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    messageBoxService.ShowMessage($"Error requesting account info: {accountSpotResult.Error.Message}", 
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
 
                 var accountFuturesResult = await client.UsdFuturesApi.Account.GetAccountInfoAsync();
 

@@ -113,6 +113,17 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
+        private ObservableCollection<Position> _spotPositions;
+        public ObservableCollection<Position> SpotPositions
+        {
+            get => _spotPositions;
+            set
+            {
+                _spotPositions = value;
+                OnPropertyChanged(nameof(SpotPositions));
+            }
+        }
+
 
         private ObservableCollection<OrderFuturesVM> _futuresOrders;
         public ObservableCollection<OrderFuturesVM> FuturesOrders
