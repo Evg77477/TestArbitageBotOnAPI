@@ -117,7 +117,7 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         public List<SpreadFormulas> Formulas { get; set; } = new List<SpreadFormulas>()
         {
-            SpreadFormulas.Prices_mines, SpreadFormulas.Percent
+            SpreadFormulas.DelltaPrices, SpreadFormulas.Percent
         };
 
         public decimal Slippage
@@ -481,13 +481,10 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         private async Task GetSecurities()
         {
-
             using (var client = new BinanceClient())
             {
-
                 if (TypeOff == "Spot")
                 {
-
                     var spotResult = await client.SpotApi.ExchangeData.GetPricesAsync();
                     if (spotResult.Success)
                     {
@@ -496,13 +493,12 @@ namespace TestArbitageBotOnAPI.ViewModel
                     }
                     else
                     {
-                        messageBoxService.ShowMessage($"Error requesting data: {spotResult.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        messageBoxService.ShowMessage($"Error requesting data: {spotResult.Error.Message}", 
+                            "error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-
                 }
                 else if (TypeOff == "Futures")
                 {
-
                     var futuresResult = await client.UsdFuturesApi.ExchangeData.GetPricesAsync();
                     if (futuresResult.Success)
                     {
@@ -511,18 +507,15 @@ namespace TestArbitageBotOnAPI.ViewModel
                     }
                     else
                     {
-                        messageBoxService.ShowMessage($"Error requesting data: {futuresResult.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        messageBoxService.ShowMessage($"Error requesting data: {futuresResult.Error.Message}", 
+                            "error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-
                 }
-
             }
-
         }
 
         private async Task GetSpotInfo()
         {
-
             socketClientSpot = new BinanceSocketClient();
 
             var subscribeResult = await socketClientSpot.SpotStreams.SubscribeToAllTickerUpdatesAsync(data =>
@@ -536,15 +529,14 @@ namespace TestArbitageBotOnAPI.ViewModel
             });
 
             if (!subscribeResult.Success)
-                messageBoxService.ShowMessage($"Failed to subscribe to price updates: {subscribeResult.Error}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                messageBoxService.ShowMessage($"Failed to subscribe to price updates: {subscribeResult.Error}",
+                    "error", MessageBoxButton.OK, MessageBoxImage.Error);
 
         }
 
         private async Task GetFuturesInfo()
         {
-
-            socketClientFutures = new BinanceSocketClient();
-            
+            socketClientFutures = new BinanceSocketClient();            
 
             var subscribe = await socketClientFutures.UsdFuturesStreams.SubscribeToAllTickerUpdatesAsync(data =>
             {
@@ -563,15 +555,15 @@ namespace TestArbitageBotOnAPI.ViewModel
             });
                        
             if (!subscribe.Success)
-                messageBoxService.ShowMessage($"Failed to subscribe to price updates: {subscribe.Error}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
-
+                messageBoxService.ShowMessage($"Failed to subscribe to price updates: {subscribe.Error}",
+                    "error", MessageBoxButton.OK, MessageBoxImage.Error);            
         }
 
         private void CalculateSpread()
         {
             SpreadFormulas formula = Formula;
 
-            if (formula == SpreadFormulas.Prices_mines)
+            if (formula == SpreadFormulas.DelltaPrices)
             {
                 Spread = Math.Abs(SelectedSpotSymbol.Price - SelectedFuturesSymbol.Price);
                 OnPropertyChanged(nameof(Spread));
@@ -638,7 +630,8 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         private async void VM_ChangeSpread(decimal spread)
         {
-            if (spread >= SpreadForTrade)
+            if (SpreadForTrade != 0
+                && spread >= SpreadForTrade)
             {
                 await GetFuturesPositions();
                 await GetSpotPositions();
