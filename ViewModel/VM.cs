@@ -638,19 +638,27 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         private async void VM_ChangeSpread(decimal spread)
         {
-            if (spread >= SpreadForTrade
-                && Regim == Regims.ON
-                /*&& Posishion == 0*/)
+            if (spread >= SpreadForTrade)
             {
-                _tradeSpread = spread;
-                await TradeLogicOpen();
-            }
-            else if ((Regim == Regims.ON
-                || Regim == Regims.ONLI_CLOSE))
+                await GetFuturesPositions();
+                await GetSpotPositions();
+
+                if (Regim == Regims.ON
+                && SelectedFuturesSymbol.FuturesPositions != null
+                && SelectedFuturesSymbol.FuturesPositions.Count == 0)
+                {
+                    _tradeSpread = spread;
+                    await TradeLogicOpen();
+                }
+                else if ((Regim == Regims.ON
+                    || Regim == Regims.ONLI_CLOSE))
                 //&& Position != 0)
-            {
-                //Торговля
+                {
+                    //Торговля
+                }
             }
+            
+            
         }
 
         private async Task TradeLogicOpen()
@@ -659,19 +667,19 @@ namespace TestArbitageBotOnAPI.ViewModel
                 && SelectedFuturesSymbol.Price != 0
                 && SelectedSpotSymbol.Price > SelectedFuturesSymbol.Price)
             {
-                await BuySpeadEmitent(SelectedSpotSymbol);
+                await BuySpotEmitent(SelectedSpotSymbol);
                 await SellFuturesEmitent(SelectedFuturesSymbol);
             }
             else if (SelectedSpotSymbol.Price != 0
                 && SelectedFuturesSymbol.Price != 0
-                && SelectedSpotSymbol.Price > SelectedFuturesSymbol.Price)
+                && SelectedSpotSymbol.Price < SelectedFuturesSymbol.Price)
             {
-                await SellSpreadEmitent(SelectedSpotSymbol);
+                await SellSpotEmitent(SelectedSpotSymbol);
                 await BuyFuturesEmitent(SelectedFuturesSymbol);
             }
         }              
 
-        public async Task BuySpeadEmitent(object o)
+        private async Task BuySpotEmitent(object o)
         {
             using (var client = new BinanceClient())
             {                
@@ -686,7 +694,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
-        public async Task SellSpreadEmitent(object o)
+        private async Task SellSpotEmitent(object o)
         {
             using (var client = new BinanceClient())
             {
@@ -700,7 +708,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
-        public async Task BuyFuturesEmitent (object o)
+        private async Task BuyFuturesEmitent (object o)
         {
             using (var client = new BinanceClient())
             {
@@ -716,7 +724,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
-        public async Task SellFuturesEmitent(object o)
+        private async Task SellFuturesEmitent(object o)
         {
             using (var client = new BinanceClient())
             {
@@ -735,18 +743,74 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
+        private async Task GetFuturesPositions()
+        {
+            if (SelectedFuturesSymbol == null)
+            {
+                return;
+            }
+
+            using (var client = new BinanceClient())
+            {
+                var result = await client.UsdFuturesApi.Account.GetPositionInformationAsync(SelectedFuturesSymbol.Symbol);
+                if (result.Success)
+                {
+                    SelectedFuturesSymbol.FuturesPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
+                    {
+                        Symbol = o.Symbol,
+                        EntryPrice = o.EntryPrice,
+                        Leverage = o.Leverage,
+                        PositionSide = o.PositionSide,
+                        Quantity = o.Quantity,
+                        LiquidationPrice = o.LiquidationPrice,
+                        MarkPrice = o.MarkPrice
+                        
+                    })); 
+                }
+                else
+                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task GetSpotPositions()
+        {
+            if (SelectedSpotSymbol == null)
+            {
+                return;
+            }
+
+
+            using (var client = new BinanceClient())
+            {
+                var result = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
+                    
+                   
+                //if (result.Success)
+                //{
+                //    SelectedFuturesSymbol.FuturesPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
+                //    {
+                //        Symbol = o.Symbol,
+                //        EntryPrice = o.EntryPrice,
+                //        Leverage = o.Leverage,
+                //        PositionSide = o.PositionSide,
+                //        Quantity = o.Quantity,
+                //        LiquidationPrice = o.LiquidationPrice,
+                //        MarkPrice = o.MarkPrice
+
+                //    }));
+                //}
+                //else
+                //    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", 
+                //        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
 
 
 
 
 
-
-
-
-
-
-        private void OnOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
+        private void OnSpotOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
         {
             var orderUpdate = data.Data;
 

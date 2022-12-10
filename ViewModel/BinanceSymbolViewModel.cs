@@ -125,6 +125,18 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
+
+        private ObservableCollection<Position> _futuresPositions;
+        public ObservableCollection<Position> FuturesPositions
+        {
+            get => _futuresPositions;
+            set
+            {
+                _futuresPositions = value;
+                OnPropertyChanged(nameof(FuturesPositions));
+            }
+        }
+
         public BinanceSymbolViewModel(string symbol, decimal price)
         {
             this._symbol = symbol;
