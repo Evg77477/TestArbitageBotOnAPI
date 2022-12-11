@@ -85,8 +85,13 @@
                         
                         <TextBlock Text="Spread for Trade:" FontSize="15" Margin="3"/>
                         <local:DecimalTextBox Text="{Binding SpreadForTrade}"
-                                 FontSize="14" Margin="2" IsReadOnly="{Binding IsReadOnly}"/>  
-                        
+                                 FontSize="14" Margin="2" IsReadOnly="{Binding IsReadOnly}"/>
+
+                        <TextBlock Text="Spread for new Trade:" FontSize="15"/>
+                        <local:DecimalTextBox Text="{Binding SpreadForNewTrade}"
+                                              FontSize="14" Margin="2"
+                                              IsReadOnly="{Binding IsReadOnly}"/>
+
                         <TextBlock Text="Lot:" FontSize="15" Margin="3"/>
 
                         <local:DecimalTextBox Text="{Binding Lot}"
@@ -98,15 +103,11 @@
                         <ComboBox ItemsSource="{Binding Formulas}"
                           SelectedItem="{Binding Formula}" FontSize="14"/>
 
-                        <TextBlock Text="Slippage:" FontSize="15"/>
-                        <local:DecimalTextBox Text="{Binding Slippage}"
-                                              FontSize="14" Margin="2"
-                                              IsReadOnly="{Binding IsReadOnly}"/>
                         
-                        
+
                         <Button Content="Закрыть все позиции"
                                 Command="{Binding CommandClosePositions}"
-                                Margin="3, 1"
+                                Margin="5, 1"
                                 Foreground="SeaGreen"/>                        
                     </UniformGrid>
 
@@ -222,8 +223,27 @@
                            HorizontalAlignment="Center"/>
             </GroupBox.Header>
 
-            <UniformGrid>
-                <!--Открытая позиция-->
+            <UniformGrid Columns="2">
+                <TextBlock Text="Positions Count"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="{Binding }"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="Side"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="{Binding }"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="Entry Price"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="{Binding }"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="Quantity"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="{Binding }"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="Var. Margin"
+                               FontSize="15" Margin="5"/>
+                <TextBlock Text="{Binding }"
+                               FontSize="15" Margin="5"/>
             </UniformGrid>
 
         </GroupBox>
@@ -283,8 +303,27 @@
                            HorizontalAlignment="Center"/>
                 </GroupBox.Header>
                 
-                <UniformGrid>
-                    <!--Открытая позиция-->
+                <UniformGrid Columns="2">
+                    <TextBlock Text="Positions Count"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="{Binding PositonsFuturesCount}"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="Side"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="{Binding PositonsFuturesSide}"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="Entry Price"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="{Binding FuturesEntryPrice}"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="Quantity"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="{Binding PositionFuturesQuantity}"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="Var. Margin"
+                               FontSize="15" Margin="5"/>
+                    <TextBlock Text="{Binding PositionFuturesMargin}"
+                               FontSize="15" Margin="5"/>
                 </UniformGrid>
                 
             </GroupBox>         

@@ -120,16 +120,21 @@ namespace TestArbitageBotOnAPI.ViewModel
             SpreadFormulas.DeltaPrices, SpreadFormulas.Percent
         };
 
-        public decimal Slippage
+
+        /// <summary>
+        /// Изменение в процентах спреда, при котором бот открыл позиции. 
+        /// При достижении указанного изменения бот открывает дополнительные позиции.
+        /// </summary>
+        public decimal SpreadForNewTrade
         {
-            get => _slippage;
+            get => _spreadForNewTrade;
             set
             {
-                _slippage = value;
-                OnPropertyChanged(nameof(Slippage));
+                _spreadForNewTrade = value;
+                OnPropertyChanged(nameof(SpreadForNewTrade));
             }
         }
-        private decimal _slippage;
+        private decimal _spreadForNewTrade;
 
         #endregion ============
 
@@ -341,6 +346,62 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
         private decimal _spread;
+
+        public int PositonsFuturesCount
+        {
+            get => _positonsFuturesCount;
+            set
+            {
+                _positonsFuturesCount = value;
+                OnPropertyChanged(nameof(PositonsFuturesCount));
+            }
+        }
+        private int _positonsFuturesCount;
+
+        public PositionSide PositonsFuturesSide
+        {
+            get => _positonsFuturesSide;
+            set
+            {
+                _positonsFuturesSide = value;
+                OnPropertyChanged(nameof(PositonsFuturesSide));
+            }
+        }
+        private PositionSide _positonsFuturesSide = PositionSide.Non;
+
+        public decimal FuturesEntryPrice
+        {
+            get => _futuresEntryPrice;
+            set
+            {
+                _futuresEntryPrice = value;
+                OnPropertyChanged(nameof(FuturesEntryPrice));
+            }
+        }
+        private decimal _futuresEntryPrice;
+
+        public decimal PositionFuturesQuantity
+        {
+            get => _positionFuturesQuantity;
+            set
+            {
+                _positionFuturesQuantity = value;
+                OnPropertyChanged(nameof(PositionFuturesQuantity));
+            }
+        }
+        private decimal _positionFuturesQuantity;
+
+        public decimal PositionFuturesMargin
+        {
+            get => _positionFuturesMargin;
+            set
+            {
+                _positionFuturesMargin = value;
+                OnPropertyChanged(nameof(PositionFuturesMargin));
+            }
+        }
+        private decimal _positionFuturesMargin;
+
 
         #endregion ================
 
@@ -582,11 +643,9 @@ namespace TestArbitageBotOnAPI.ViewModel
             if (IsRun
                 && (SelectedSpotSymbol != null
                 && SelectedFuturesSymbol != null)
-                && StateOfConnect == "Connect") // Изменить на противоположное
+                && StateOfConnect == "Connect") 
             {
-                this.ChangeSpread += VM_ChangeSpread;
-                
-                //Торговая логика
+                this.ChangeSpread += VM_ChangeSpread;               
             }
             if (!IsRun)
             {
@@ -630,6 +689,11 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         private async void VM_ChangeSpread(decimal spread)
         {
+            if (!IsRun)
+            {
+                return;
+            }
+            
             if (SpreadForTrade != 0
                 && spread >= SpreadForTrade)
             {
@@ -644,14 +708,13 @@ namespace TestArbitageBotOnAPI.ViewModel
                     await TradeLogicOpen();
                 }
                 else if ((Regim == Regims.ON
-                    || Regim == Regims.ONLI_CLOSE))
-                //&& Position != 0)
+                    || Regim == Regims.ONLI_CLOSE)
+                && SelectedFuturesSymbol.FuturesPositions != null
+                && SelectedFuturesSymbol.FuturesPositions.Count > 0)
                 {
-                    //Торговля
+                    await TradeLogic(spread);
                 }
-            }
-            
-            
+            }      
         }
 
         private async Task TradeLogicOpen()
@@ -671,6 +734,28 @@ namespace TestArbitageBotOnAPI.ViewModel
                 await BuyFuturesEmitent(SelectedFuturesSymbol);
             }
         }              
+
+        private async Task TradeLogic(decimal spread)
+        {
+            decimal сhangeSpreadInPercent = (spread - _tradeSpread) * 100 / _tradeSpread;
+
+            if (spread <= BaseSpread)
+            {
+                await TradeLogicClose();
+            }
+            else if (spread > _tradeSpread
+                    && SpreadForNewTrade >= сhangeSpreadInPercent
+                    && Regim != Regims.ONLI_CLOSE)
+            {
+                _tradeSpread = spread;
+                await TradeLogicOpen();
+            }
+        }
+
+        private async Task TradeLogicClose()
+        {
+
+        }
 
         private async Task BuySpotEmitent(object o)
         {
@@ -762,13 +847,51 @@ namespace TestArbitageBotOnAPI.ViewModel
                         LiquidationPrice = o.LiquidationPrice,
                         MarkPrice = o.MarkPrice
                         
-                    })); 
+                    }));
+                    CalculateFuturesPosition(SelectedFuturesSymbol.FuturesPositions);
                 }
                 else
-                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", 
-                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                {
+                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
+                       "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                   
             }
         }
+
+
+        private void CalculateFuturesPosition(ObservableCollection<Position> position)
+        {
+            if (position == null || position.Count == 0)
+            {
+                return;
+            }
+
+            PositonsFuturesCount = position.Count;
+
+            var pos = position.Last();
+
+            if (pos.Symbol != SelectedFuturesSymbol.Symbol)
+            {
+               return;
+            }
+
+            PositonsFuturesSide = pos.PositionSide;
+            FuturesEntryPrice = pos.EntryPrice;
+            PositionFuturesQuantity = pos.Quantity;
+            if (pos.PositionSide == PositionSide.Short)
+            {
+                PositionFuturesMargin = (pos.EntryPrice - SelectedFuturesSymbol.Price) * pos.Quantity;
+            }
+            else if (pos.PositionSide == PositionSide.Long)
+            {
+                PositionFuturesMargin = (SelectedFuturesSymbol.Price - pos.EntryPrice) * pos.Quantity;
+            }
+
+        }
+
+
+
 
         private async Task GetSpotPositions()
         {
@@ -782,23 +905,23 @@ namespace TestArbitageBotOnAPI.ViewModel
             {
                 var result = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
 
-                //if (result.Success)
-                //{
-                //    SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
-                //    {
-                //        Symbol = o.Symbol,
-                //        EntryPrice = o.EntryPrice,
-                //        Leverage = o.Leverage,
-                //        PositionSide = o.PositionSide,
-                //        Quantity = o.Quantity,
-                //        LiquidationPrice = o.LiquidationPrice,
-                //        MarkPrice = o.MarkPrice
+                if (result.Success)
+                {
+                    SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
+                    {
+                        Symbol = o.Symbol,
+                        //EntryPrice = o.OrderId,
+                        //Leverage = o.Leverage,
+                        //PositionSide = o.,
+                        Quantity = o.Quantity,
+                        //LiquidationPrice = o.LiquidationPrice,
+                        //MarkPrice = o.MarkPrice
 
-                //    }));
-                //}
-                //else
-                //    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
-                //        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }));
+                }
+                else
+                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
