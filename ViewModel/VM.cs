@@ -906,119 +906,10 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
 
 
-            using (var client = new BinanceClient())
-            {
-                var result = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
-
-                if (result.Success)
-                {
-                    SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
-                    {
-                        Symbol = o.Symbol,
-                        //EntryPrice = o.OrderId,
-                        //Leverage = o.Leverage,
-                        //PositionSide = o.,
-                        Quantity = o.Quantity,
-                        //LiquidationPrice = o.LiquidationPrice,
-                        //MarkPrice = o.MarkPrice
-
-                    }));
-                }
-                else
-                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
-                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
-
-
-
-
-
-
-        private void OnSpotOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
-        {
-            var orderUpdate = data.Data;
-
-            var symbol = AllSecurityesSpot.SingleOrDefault(a => a.Symbol == orderUpdate.Symbol);
-            if (symbol == null)
-                return;
-
-            lock (orderLock)
-            {
-                var order = symbol.SpotOrders.SingleOrDefault(o => o.Id == orderUpdate.Id);
-                if (order == null)
-                {
-                    if (orderUpdate.RejectReason != OrderRejectReason.None || orderUpdate.ExecutionType != ExecutionType.New)
-                        // Order got rejected, no need to show
-                        return;
-
-                    Application.Current.Dispatcher.Invoke(() =>
-                    {
-                        symbol.AddOrder(new OrderSpotVM()
-                        {
-                            ExecutedQuantity = orderUpdate.QuoteQuantityFilled,
-                            Id = orderUpdate.Id,
-                            OriginalQuantity = orderUpdate.Quantity,
-                            Price = orderUpdate.Price,
-                            Side = orderUpdate.Side,
-                            Status = orderUpdate.Status,
-                            Symbol = orderUpdate.Symbol,
-                            Time = orderUpdate.CreateTime,
-                            Type = orderUpdate.Type
-                        });
-                    });
-                }
-                else
-                {
-                    order.ExecutedQuantity = orderUpdate.QuantityFilled;
-                    order.Status = orderUpdate.Status;
-                }
-            }
-        }
-
-        private async Task GetSpotOrders()
-        {
-            if (SelectedSpotSymbol == null)
-                return;
-
-            //if (apiKey == null)
-            //{
-            //    if (!_shownCredentailsMessage)
-            //    {
-            //        _shownCredentailsMessage = true;
-            //        messageBoxService.ShowMessage($"To retrieve and manage orders enter your API credentials via the settings on the top right", "Credentials", MessageBoxButton.OK, MessageBoxImage.Information);
-            //    }
-            //    return;
-            //}
-
-            using (var client = new BinanceClient())
-            {
-                var result = await client.SpotApi.Trading.GetOrdersAsync(SelectedSpotSymbol.Symbol);
-                if (result.Success)
-                {
-                    SelectedSpotSymbol.SpotOrders = new ObservableCollection<OrderSpotVM>(result.Data.OrderByDescending(d => d.CreateTime).Select(o => new OrderSpotVM()
-                    {
-                        Id = o.Id,
-                        ExecutedQuantity = o.QuantityFilled,
-                        OriginalQuantity = o.Quantity,
-                        Price = o.Price,
-                        Side = o.Side,
-                        Status = o.Status,
-                        Symbol = o.Symbol,
-                        Time = o.CreateTime,
-                        Type = o.Type
-                    }));
-                }
-                else
-                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}", 
-                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
         }
 
 
         #endregion
-
-
 
 
 
@@ -1035,7 +926,6 @@ namespace TestArbitageBotOnAPI.ViewModel
                     messageBoxService.ShowMessage($"Order canceling failed: {result.Error.Message}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
 
 
 
