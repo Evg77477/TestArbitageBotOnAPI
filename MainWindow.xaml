@@ -123,12 +123,8 @@
                                    FontWeight="Bold"/>
                     </GroupBox.Header>
                     
-                    <UniformGrid Columns="2">
-                       
-                        <TextBlock Text="Средняя цена:" FontSize="14"/>
-                        <TextBlock Text="{Binding PriceAverage, StringFormat={}{0:0.####},
-                            UpdateSourceTrigger=PropertyChanged}"
-                                   FontSize="14"/>
+                    <UniformGrid Columns="2">                       
+                        
                         <TextBlock Text="Вариационная маржа:" FontSize="14"/>
                         <TextBlock Text="{Binding VarMargine, StringFormat={}{0:0.##},
                             UpdateSourceTrigger=PropertyChanged}"
