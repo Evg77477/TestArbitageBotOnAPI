@@ -139,6 +139,98 @@ namespace TestArbitageBotOnAPI.ViewModel
         #endregion ============
 
 
+        #region Futures Properties =======================
+
+        public ObservableCollection<BinanceSymbolViewModel> AllSecurityesFutures
+        {
+            get => _allSecurityesFutures;
+            set
+            {
+                _allSecurityesFutures = value;
+                //if (AllSecurityes != null)
+                //{
+                //    AllSecurityes.Clear();
+                //}
+
+                AllSecurityes = AllSecurityesFutures;
+                OnPropertyChanged(nameof(AllSecurityesFutures));
+                OnPropertyChanged(nameof(AllSecurityes));
+
+
+            }
+        }
+        private ObservableCollection<BinanceSymbolViewModel> _allSecurityesFutures;
+
+
+        public BinanceSymbolViewModel SelectedFuturesSymbol
+        {
+            get => _selectedFuturesSymbol;
+            set
+            {
+                _selectedFuturesSymbol = value;
+                OnPropertyChanged(nameof(SelectedFuturesSymbol));
+            }
+        }
+        private BinanceSymbolViewModel _selectedFuturesSymbol;
+
+
+        public int PositonsFuturesCount
+        {
+            get => _positonsFuturesCount;
+            set
+            {
+                _positonsFuturesCount = value;
+                OnPropertyChanged(nameof(PositonsFuturesCount));
+            }
+        }
+        private int _positonsFuturesCount;
+
+        public PositionSide PositonsFuturesSide
+        {
+            get => _positonsFuturesSide;
+            set
+            {
+                _positonsFuturesSide = value;
+                OnPropertyChanged(nameof(PositonsFuturesSide));
+            }
+        }
+        private PositionSide _positonsFuturesSide = PositionSide.Non;
+
+        public decimal FuturesEntryPrice
+        {
+            get => _futuresEntryPrice;
+            set
+            {
+                _futuresEntryPrice = value;
+                OnPropertyChanged(nameof(FuturesEntryPrice));
+            }
+        }
+        private decimal _futuresEntryPrice;
+
+        public decimal PositionFuturesQuantity
+        {
+            get => _positionFuturesQuantity;
+            set
+            {
+                _positionFuturesQuantity = value;
+                OnPropertyChanged(nameof(PositionFuturesQuantity));
+            }
+        }
+        private decimal _positionFuturesQuantity;
+
+        public decimal PositionFuturesMargin
+        {
+            get => _positionFuturesMargin;
+            set
+            {
+                _positionFuturesMargin = value;
+                OnPropertyChanged(nameof(PositionFuturesMargin));
+            }
+        }
+        private decimal _positionFuturesMargin;
+
+        #endregion =========
+
 
         public bool IsRun
         {
@@ -233,17 +325,7 @@ namespace TestArbitageBotOnAPI.ViewModel
         }
         private BinanceSymbolViewModel _selectedSpotSymbol;
 
-        public BinanceSymbolViewModel SelectedFuturesSymbol
-        {
-            get => _selectedFuturesSymbol;
-            set
-            {
-                _selectedFuturesSymbol = value;                
-                OnPropertyChanged(nameof(SelectedFuturesSymbol));               
-            }
-        }
-        private BinanceSymbolViewModel _selectedFuturesSymbol;
-
+       
         public ObservableCollection<BinanceSymbolViewModel> AllSecurityes
         {
             get => _allSecurityes;
@@ -274,27 +356,7 @@ namespace TestArbitageBotOnAPI.ViewModel
         }
         private ObservableCollection<BinanceSymbolViewModel> _allSecurityesSpot;
 
-        public ObservableCollection<BinanceSymbolViewModel> AllSecurityesFutures
-        {
-            get => _allSecurityesFutures;
-            set
-            {
-                _allSecurityesFutures = value;
-                //if (AllSecurityes != null)
-                //{
-                //    AllSecurityes.Clear();
-                //}
-
-                AllSecurityes = AllSecurityesFutures;
-                OnPropertyChanged(nameof(AllSecurityesFutures));
-                OnPropertyChanged(nameof(AllSecurityes));
-
-
-            }
-        }
-        private ObservableCollection<BinanceSymbolViewModel> _allSecurityesFutures;
-
-
+       
         public BinanceSymbolViewModel SelectedSymbol
         {
             get => _selectedSymbol;
@@ -346,61 +408,6 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
         private decimal _spread;
-
-        public int PositonsFuturesCount
-        {
-            get => _positonsFuturesCount;
-            set
-            {
-                _positonsFuturesCount = value;
-                OnPropertyChanged(nameof(PositonsFuturesCount));
-            }
-        }
-        private int _positonsFuturesCount;
-
-        public PositionSide PositonsFuturesSide
-        {
-            get => _positonsFuturesSide;
-            set
-            {
-                _positonsFuturesSide = value;
-                OnPropertyChanged(nameof(PositonsFuturesSide));
-            }
-        }
-        private PositionSide _positonsFuturesSide = PositionSide.Non;
-
-        public decimal FuturesEntryPrice
-        {
-            get => _futuresEntryPrice;
-            set
-            {
-                _futuresEntryPrice = value;
-                OnPropertyChanged(nameof(FuturesEntryPrice));
-            }
-        }
-        private decimal _futuresEntryPrice;
-
-        public decimal PositionFuturesQuantity
-        {
-            get => _positionFuturesQuantity;
-            set
-            {
-                _positionFuturesQuantity = value;
-                OnPropertyChanged(nameof(PositionFuturesQuantity));
-            }
-        }
-        private decimal _positionFuturesQuantity;
-
-        public decimal PositionFuturesMargin
-        {
-            get => _positionFuturesMargin;
-            set
-            {
-                _positionFuturesMargin = value;
-                OnPropertyChanged(nameof(PositionFuturesMargin));
-            }
-        }
-        private decimal _positionFuturesMargin;
 
 
         #endregion ================
@@ -700,16 +707,14 @@ namespace TestArbitageBotOnAPI.ViewModel
                 await GetFuturesPositions();
                 await GetSpotPositions();
 
-                if (Regim == Regims.ON
-                && SelectedFuturesSymbol.FuturesPositions != null
+                if (Regim == Regims.ON                
                 && SelectedFuturesSymbol.FuturesPositions.Count == 0)
                 {
                     _tradeSpread = spread;
                     await TradeLogicOpen();
                 }
                 else if ((Regim == Regims.ON
-                    || Regim == Regims.ONLI_CLOSE)
-                && SelectedFuturesSymbol.FuturesPositions != null
+                    || Regim == Regims.ONLI_CLOSE)                
                 && SelectedFuturesSymbol.FuturesPositions.Count > 0)
                 {
                     await TradeLogic(spread);
@@ -845,8 +850,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                         PositionSide = o.PositionSide,
                         Quantity = o.Quantity,
                         LiquidationPrice = o.LiquidationPrice,
-                        MarkPrice = o.MarkPrice
-                        
+                        MarkPrice = o.MarkPrice                        
                     }));
                     CalculateFuturesPosition(SelectedFuturesSymbol.FuturesPositions);
                 }
@@ -876,9 +880,10 @@ namespace TestArbitageBotOnAPI.ViewModel
                return;
             }
 
-            PositonsFuturesSide = pos.PositionSide;
+            PositonsFuturesSide = pos.PositionSide;            
             FuturesEntryPrice = pos.EntryPrice;
             PositionFuturesQuantity = pos.Quantity;
+
             if (pos.PositionSide == PositionSide.Short)
             {
                 PositionFuturesMargin = (pos.EntryPrice - SelectedFuturesSymbol.Price) * pos.Quantity;
