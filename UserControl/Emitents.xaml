@@ -6,34 +6,77 @@
         xmlns:local="clr-namespace:TestArbitageBotOnAPI.UserControl"
         xmlns:mah="http://metro.mahapps.com/winfx/xaml/controls"
         mc:Ignorable="d"
-        Title="Emitents" Height="300" Width="370">    
+        Title="Emitents" Height="300" Width="600">
+
+   
+    <!--<Grid>
+
+        
+
+    </Grid>-->
 
     <Grid>
+
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>            
         </Grid.ColumnDefinitions>
 
-        <GroupBox Header="{Binding TypeOff}"
+        <Grid.RowDefinitions>
+            <RowDefinition Height="30"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+
+            <TextBlock Text="Поиск по списку эмитентов:" 
+                           FontSize="15" Margin="5, 4"
+                           FontWeight="Bold"/>
+
+            <TextBox Text="{Binding LostEmitent, UpdateSourceTrigger=PropertyChanged}"
+                           Width="85" 
+                           FontSize="15" 
+                           Margin="5, 1"   
+                           FontWeight="Bold"
+                           Foreground="Black"/>
+
+
+        </Grid>
+
+        <Grid Grid.Row="1">
+
+            <GroupBox Header="{Binding TypeOff}"
                   Margin="2">
-            <ListView Grid.Row="0"
+
+
+                <ListView Grid.Row="0"
                       Margin="5"                       
                       ItemsSource="{Binding AllSecurityes}"
                       SelectedItem="{Binding SelectedSymbol}">
-                
-                <ListView.View>                   
-                    <GridView>                        
-                        <GridView.Columns>
-                            <GridViewColumn Width="150"
+
+                    <ListView.View>
+                        <GridView>
+                            <GridView.Columns>
+                                <GridViewColumn Width="150"
                                 Header="Emitents"                                   
                         DisplayMemberBinding="{Binding Symbol}"/>
-                            <GridViewColumn Width="200"
+                                <GridViewColumn Width="200"
                                 Header="Price"
                         DisplayMemberBinding="{Binding Price}"/>
-                        </GridView.Columns>
-                    </GridView>
-                </ListView.View>
-            </ListView>
-        </GroupBox>
+                            </GridView.Columns>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+
+            </GroupBox>
+
+        </Grid>
+
+        
+       
+
+
+
+
 
     </Grid>
 </mah:MetroWindow>

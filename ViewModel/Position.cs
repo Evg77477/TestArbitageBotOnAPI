@@ -1,6 +1,7 @@
 ﻿using Binance.Net.Enums;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -9,7 +10,8 @@ namespace TestArbitageBotOnAPI.ViewModel
 {
     public class Position : BaseVM
     {
-        public string? Id
+               
+        public long? Id
         {
             get => _id; 
             set
@@ -18,7 +20,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                 OnPropertyChanged(nameof(Id));
             }
         }
-        private string _id;
+        private long? _id;
 
         public string Symbol
         {
@@ -130,8 +132,47 @@ namespace TestArbitageBotOnAPI.ViewModel
         }
         private decimal _markPrice;
 
+        public bool IsBuyer
+        {
+            get => _isBuyer;
+            set
+            {
+                _isBuyer = value;
+                if (_isBuyer)
+                {
+                    PositionSpotSide = PositionSide.Long;
+                }                
+                OnPropertyChanged(nameof(PositionSpotSide));
+            }
+        }
+        private bool _isBuyer = false;
 
+        public bool IsMaker
+        {
+            get => _isMaker;
+            set
+            {
+                _isMaker = value;
+                if (_isMaker)
+                {
+                    PositionSpotSide = PositionSide.Short;
+                }
+                OnPropertyChanged(nameof(PositionSpotSide));
+            }
+        }
+        private bool _isMaker = false;
 
+        public PositionSide PositionSpotSide
+        {
+            get => _positionSpotSide;
+            set
+            {
+                _positionSpotSide = value;
+                OnPropertyChanged(nameof(PositionSpotSide));
+            }
+        }
+        private PositionSide _positionSpotSide = PositionSide.Non;
 
+        public DateTime? Timestamp { get; set; }
     }
 }

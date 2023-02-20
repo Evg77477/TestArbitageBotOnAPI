@@ -113,8 +113,8 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
-        private ObservableCollection<Position> _spotPositions;
-        public ObservableCollection<Position> SpotPositions
+        private ObservableCollection<Position>? _spotPositions;
+        public ObservableCollection<Position>? SpotPositions
         {
             get => _spotPositions;
             set
@@ -167,5 +167,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             FuturesOrders.OrderByDescending(o => o.CreateTime);
             OnPropertyChanged(nameof(FuturesOrders));
         }
+
+        
     }
 }

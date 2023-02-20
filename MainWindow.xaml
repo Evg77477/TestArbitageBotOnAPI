@@ -222,23 +222,23 @@
             <UniformGrid Columns="2">
                 <TextBlock Text="Positions Count"
                                FontSize="15" Margin="5"/>
-                <TextBlock Text="{Binding }"
+                <TextBlock Text="{Binding PositonsSpotCount}"
                                FontSize="15" Margin="5"/>
                 <TextBlock Text="Side"
                                FontSize="15" Margin="5"/>
-                <TextBlock Text="{Binding }"
+                <TextBlock Text="{Binding PositonsSpotSide}"
                                FontSize="15" Margin="5"/>
                 <TextBlock Text="Entry Price"
                                FontSize="15" Margin="5"/>
-                <TextBlock Text="{Binding }"
+                <TextBlock Text="{Binding SpotEntryPrice}"
                                FontSize="15" Margin="5"/>
                 <TextBlock Text="Quantity"
                                FontSize="15" Margin="5"/>
-                <TextBlock Text="{Binding }"
+                <TextBlock Text="{Binding PositionSpotQuantity}"
                                FontSize="15" Margin="5"/>
                 <TextBlock Text="Var. Margin"
                                FontSize="15" Margin="5"/>
-                <TextBlock Text="{Binding }"
+                <TextBlock Text="{Binding PositionSpotMargin}"
                                FontSize="15" Margin="5"/>
             </UniformGrid>
 

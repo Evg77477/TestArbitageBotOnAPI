@@ -1,6 +1,8 @@
 ﻿using Binance.Net.Clients;
 using Binance.Net.Enums;
 using Binance.Net.Objects;
+using Binance.Net.Objects.Models;
+using Binance.Net.Objects.Models.Futures.Socket;
 using Binance.Net.Objects.Models.Spot.Socket;
 using CryptoExchange.Net.Authentication;
 using CryptoExchange.Net.CommonObjects;
@@ -122,7 +124,7 @@ namespace TestArbitageBotOnAPI.ViewModel
 
 
         /// <summary>
-        /// Изменение в процентах спреда, при котором бот открыл позиции. 
+        /// Изменение в процентах относительно спреда при котором бот открыл позиции. 
         /// При достижении указанного изменения бот открывает дополнительные позиции.
         /// </summary>
         public decimal SpreadForNewTrade
@@ -147,10 +149,9 @@ namespace TestArbitageBotOnAPI.ViewModel
             set
             {
                 _allSecurityesFutures = value;
-                //if (AllSecurityes != null)
-                //{
-                //    AllSecurityes.Clear();
-                //}
+
+                _allSecurityesFutures = new ObservableCollection<BinanceSymbolViewModel>(_allSecurityesFutures.OrderBy(i => i.Symbol));
+
 
                 AllSecurityes = AllSecurityesFutures;
                 OnPropertyChanged(nameof(AllSecurityesFutures));
@@ -231,6 +232,112 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         #endregion =========
 
+        #region Spot Properties ================================
+
+
+        public ObservableCollection<BinanceSymbolViewModel> AllSecurityesSpot
+        {
+            get => _allSecurityesSpot;
+            set
+            {
+                _allSecurityesSpot = value;
+
+                _allSecurityesSpot = new ObservableCollection<BinanceSymbolViewModel>(_allSecurityesSpot.OrderBy(i => i.Symbol));
+
+                AllSecurityes = AllSecurityesSpot;
+                OnPropertyChanged(nameof(AllSecurityesSpot));
+                OnPropertyChanged(nameof(AllSecurityes));
+
+            }
+        }
+        private ObservableCollection<BinanceSymbolViewModel> _allSecurityesSpot;
+
+        public BinanceSymbolViewModel SelectedSpotSymbol
+        {
+            get => _selectedSpotSymbol;
+            set
+            {
+                _selectedSpotSymbol = value;
+                OnPropertyChanged(nameof(SelectedSpotSymbol));
+            }
+        }
+        private BinanceSymbolViewModel _selectedSpotSymbol;
+
+
+        public int PositonsSpotCount
+        {
+            get => _positonsSpotCount;
+            set
+            {
+                _positonsSpotCount = value;
+                OnPropertyChanged(nameof(PositonsSpotCount));
+            }
+        }
+        private int _positonsSpotCount;
+
+        public PositionSide PositonsSpotSide
+        {
+            get => _positonsSpotSide;
+            set
+            {
+                _positonsSpotSide = value;
+                OnPropertyChanged(nameof(PositonsSpotSide));
+            }
+        }
+        private PositionSide _positonsSpotSide = PositionSide.Non;
+
+        public decimal SpotEntryPrice
+        {
+            get => _spotEntryPrice;
+            set
+            {
+                _spotEntryPrice = value;
+                OnPropertyChanged(nameof(SpotEntryPrice));
+            }
+        }
+        private decimal _spotEntryPrice;
+
+        public decimal PositionSpotQuantity
+        {
+            get => _positionSpotQuantity;
+            set
+            {
+                _positionSpotQuantity = value;
+                OnPropertyChanged(nameof(PositionSpotQuantity));
+            }
+        }
+        private decimal _positionSpotQuantity;
+
+        public decimal PositionSpotMargin
+        {
+            get => _positionSpotMargin;
+            set
+            {
+                _positionSpotMargin = value;
+                OnPropertyChanged(nameof(PositionSpotMargin));
+            }
+        }
+        private decimal _positionSpotMargin;
+
+
+        #endregion ==========
+
+
+        public string LostEmitent
+        {
+            get => _lostEmitent;
+            set
+            {
+                _lostEmitent = value;
+                if (_lostEmitent != null
+                    && _lostEmitent != "")
+                {
+                    FindEmitent(_lostEmitent);
+                }
+                OnPropertyChanged(nameof(LostEmitent));
+            }
+        }
+        private string _lostEmitent;
 
         public bool IsRun
         {
@@ -314,18 +421,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
-        public BinanceSymbolViewModel SelectedSpotSymbol
-        {
-            get => _selectedSpotSymbol; 
-            set
-            {
-                _selectedSpotSymbol = value;                
-                OnPropertyChanged(nameof(SelectedSpotSymbol));
-            }
-        }
-        private BinanceSymbolViewModel _selectedSpotSymbol;
-
-       
+             
         public ObservableCollection<BinanceSymbolViewModel> AllSecurityes
         {
             get => _allSecurityes;
@@ -337,24 +433,6 @@ namespace TestArbitageBotOnAPI.ViewModel
         }
         private ObservableCollection<BinanceSymbolViewModel> _allSecurityes;
 
-        public ObservableCollection<BinanceSymbolViewModel> AllSecurityesSpot
-        {
-            get => _allSecurityesSpot;
-            set
-            {
-                _allSecurityesSpot = value;
-                //if (AllSecurityes != null)
-                //{
-                //    AllSecurityes.Clear();
-                //}
-               
-                AllSecurityes = AllSecurityesSpot;
-                OnPropertyChanged(nameof(AllSecurityesSpot));
-                OnPropertyChanged(nameof(AllSecurityes));
-
-            }
-        }
-        private ObservableCollection<BinanceSymbolViewModel> _allSecurityesSpot;
 
        
         public BinanceSymbolViewModel SelectedSymbol
@@ -432,7 +510,7 @@ namespace TestArbitageBotOnAPI.ViewModel
         /// </summary>
         private decimal _tradeSpread;
 
-
+        private long SpotOrderId;
 
         #endregion ================
 
@@ -511,6 +589,138 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         #region Methods =========================================
 
+
+        #region Setting&AccountLogic ================
+
+        private void SetApi(object obj)
+        {
+            settings = new ApiSetting(this);
+            settings.ShowDialog();
+        }
+
+        private async void Connect(object obj)
+        {
+            settings.Close();
+
+            if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
+            {
+                BinanceClient.SetDefaultOptions(new BinanceClientOptions()
+                {
+                    ApiCredentials = new ApiCredentials(apiKey, apiSecret)
+                });
+            }
+            await SubscribeUserStream();
+        }        
+
+        private async Task SubscribeUserStream()
+        {
+            if (ApiKey == null || ApiSecret == null)
+            {
+                StateOfConnect = "Disconnect";
+
+                messageBoxService.ShowMessage("Не введены или некорректно введены ApiKey и/или " +
+                    "ApiSecret!\nПроверьте настройки бота!",
+                   "Внимание!", MessageBoxButton.OK, MessageBoxImage.Error);
+                
+                return;
+            }
+
+
+            using (var client = new BinanceClient())
+            {
+                var startSpotOkay = await client.SpotApi.Account.StartUserStreamAsync();
+
+                if (!startSpotOkay.Success)
+                {
+                    messageBoxService.ShowMessage($"Error starting user stream: {startSpotOkay.Error.Message}",
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                var startFuturesOkay = await client.UsdFuturesApi.Account.StartUserStreamAsync();
+                if (!startFuturesOkay.Success)
+                {
+                    messageBoxService.ShowMessage($"Error starting user stream: {startFuturesOkay.Error.Message}",
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (startSpotOkay.Success && startFuturesOkay.Success)
+                {
+                    StateOfConnect = "Connect";
+                }
+                else
+                {
+                    StateOfConnect = "Disconnect";
+                }
+
+
+                var subSpotOkay = await socketClientSpot.SpotStreams.SubscribeToUserDataUpdatesAsync(startSpotOkay.Data, OnSpotOrderUpdate, null,
+                    OnSpotAccountUpdate, OnSpotBalanceUpdate);
+
+                if (!subSpotOkay.Success)
+                {
+                    messageBoxService.ShowMessage($"Error subscribing to user stream: {subSpotOkay.Error.Message}",
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+
+                var subFuturesOkay = await socketClientFutures.UsdFuturesStreams.SubscribeToUserDataUpdatesAsync(startFuturesOkay.Data, null,
+                    null, OnFuturesAccountUpdate, OnFuturesOrderUpdate, OnFuturesExpiredUpdate);
+
+
+                if (!subSpotOkay.Success)
+                {
+                    messageBoxService.ShowMessage($"Error subscribing to user stream: {subFuturesOkay.Error.Message}",
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+
+
+
+                var accountSpotResult = await client.SpotApi.Account.GetAccountInfoAsync();
+
+
+                if (accountSpotResult.Success)
+                    Assets = new ObservableCollection<AssetViewModel>(accountSpotResult.Data.Balances.Where(b => b.Available != 0 | b.Locked != 0).Select(b => new AssetViewModel()
+                    { Asset = b.Asset, Free = b.Available, Locked = b.Locked }).ToList());
+                else
+                    messageBoxService.ShowMessage($"Error requesting account info: {accountSpotResult.Error.Message}",
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+
+
+                //var accountFuturesResult = await client.UsdFuturesApi.Account.GetAccountInfoAsync();
+
+
+                //if (accountFuturesResult.Success)
+                //    Assets = new ObservableCollection<AssetViewModel>(accountFuturesResult.Data. Where(b => b.Available != 0 | b.Locked != 0).Select(b => new AssetViewModel() { Asset = b.Asset, Free = b.Available, Locked = b.Locked }).ToList());
+                //else
+                //    messageBoxService.ShowMessage($"Error requesting account info: {accountFuturesResult.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+        }
+
+        private void StartStop(object obj)
+        {
+            IsRun = !IsRun;
+
+            if (IsRun
+                && (SelectedSpotSymbol != null
+                && SelectedFuturesSymbol != null)
+                && StateOfConnect == "Connect")
+            {
+                this.ChangeSpread += VM_ChangeSpread;
+            }
+            if (!IsRun)
+            {
+                this.ChangeSpread -= VM_ChangeSpread;
+            }
+        }
+
+        #endregion
+
         #region BaseLogic ===========
 
         private void SelectSpotSecurity(object obj)
@@ -525,7 +735,9 @@ namespace TestArbitageBotOnAPI.ViewModel
 
             TypeOff = "Spot";
             OnPropertyChanged(nameof(TypeOff));
-            wind = new Emitents(this);
+            LostEmitent = "";
+
+            wind = new Emitents(this);       
 
             wind.ShowDialog();
         }
@@ -542,7 +754,9 @@ namespace TestArbitageBotOnAPI.ViewModel
 
             TypeOff = "Futures";
             OnPropertyChanged(nameof(TypeOff));
-            wind = new Emitents(this);
+            LostEmitent = "";
+
+            wind = new Emitents(this);            
 
             wind.ShowDialog();
         }
@@ -593,7 +807,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                     var symbol = AllSecurityesSpot.SingleOrDefault(p => p.Symbol == ud.Symbol);
                     if (symbol != null)
                         symbol.Price = ud.LastPrice;
-                }
+                }                
             });
 
             if (!subscribeResult.Success)
@@ -643,54 +857,49 @@ namespace TestArbitageBotOnAPI.ViewModel
             OnPropertyChanged(nameof(Spread));
         }
 
-        private void StartStop(object obj)
+
+        private void FindEmitent(string emitentName)
         {
-            IsRun = !IsRun;
+            string findSimbol = emitentName;
 
-            if (IsRun
-                && (SelectedSpotSymbol != null
-                && SelectedFuturesSymbol != null)
-                && StateOfConnect == "Connect") 
+            var selectSimbol = new ObservableCollection<BinanceSymbolViewModel>();
+
+
+            if (TypeOff == "Spot")
             {
-                this.ChangeSpread += VM_ChangeSpread;               
-            }
-            if (!IsRun)
-            {
-                this.ChangeSpread -= VM_ChangeSpread;
-            }
-        }
-
-       
-
-
-        #endregion
-
-        #region Setting&AccountLogic ================
-
-
-        private void SetApi(object obj)
-        {
-            settings = new ApiSetting(this);
-            settings.ShowDialog();
-        }
-
-        private async void Connect(object obj)
-        {
-            settings.Close();
-
-            if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
-            {
-                BinanceClient.SetDefaultOptions(new BinanceClientOptions()
+                foreach (var simb in AllSecurityesSpot)
                 {
-                    ApiCredentials = new ApiCredentials(apiKey, apiSecret)      
-                });
+                    if (simb.Symbol.StartsWith(findSimbol))
+                    {
+                        selectSimbol.Add(simb);
+                    }
+                }                
+               
             }
-            await SubscribeUserStream(); 
+            else if (TypeOff == "Futures")
+            {
+                foreach (var simb in AllSecurityesFutures)
+                {
+                    if (simb.Symbol.StartsWith(findSimbol))
+                    {
+                        selectSimbol.Add(simb);
+                    }
+                }
+
+            }
+
+            selectSimbol = new ObservableCollection<BinanceSymbolViewModel>(selectSimbol.OrderBy(i => i.Symbol));
+
+            if (selectSimbol != null)
+            {
+                AllSecurityes = selectSimbol;
+
+                OnPropertyChanged(nameof(AllSecurityes));
+            }
         }
 
-
-
         #endregion
+
 
         #region TradeLogic ==================
 
@@ -700,7 +909,8 @@ namespace TestArbitageBotOnAPI.ViewModel
             {
                 return;
             }
-            
+                        
+
             if (SpreadForTrade != 0
                 && spread >= SpreadForTrade)
             {
@@ -708,14 +918,20 @@ namespace TestArbitageBotOnAPI.ViewModel
                 await GetSpotPositions();
 
                 if (Regim == Regims.ON                
-                && SelectedFuturesSymbol.FuturesPositions.Count == 0)
+                && SelectedFuturesSymbol.FuturesPositions != null
+                && SelectedFuturesSymbol.FuturesPositions.Count == 0
+                && SelectedSpotSymbol.SpotPositions != null
+                && SelectedSpotSymbol.SpotPositions.Count == 0) 
                 {
                     _tradeSpread = spread;
                     await TradeLogicOpen();
                 }
                 else if ((Regim == Regims.ON
-                    || Regim == Regims.ONLI_CLOSE)                
-                && SelectedFuturesSymbol.FuturesPositions.Count > 0)
+                    || Regim == Regims.ONLI_CLOSE)
+                 && SelectedFuturesSymbol.FuturesPositions != null
+                 && SelectedFuturesSymbol.FuturesPositions.Count > 0
+                 && SelectedSpotSymbol.SpotPositions != null
+                 && SelectedSpotSymbol.SpotPositions.Count > 0)
                 {
                     await TradeLogic(spread);
                 }
@@ -762,6 +978,8 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         }
 
+
+
         private async Task BuySpotEmitent(object o)
         {
             using (var client = new BinanceClient())
@@ -770,11 +988,17 @@ namespace TestArbitageBotOnAPI.ViewModel
                     OrderSide.Buy, SpotOrderType.Limit, Lot, price: SelectedSpotSymbol.Price, 
                     timeInForce: TimeInForce.GoodTillCanceled);
                 if (result.Success)
-                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK, 
-                        MessageBoxImage.Information);
+                {
+                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK,
+                       MessageBoxImage.Information);
+                    //SpotOrderId = result.Data.Id;
+                }
                 else
-                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}", 
-                        "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                {
+                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}",
+                       "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                   
             }
         }
 
@@ -786,12 +1010,185 @@ namespace TestArbitageBotOnAPI.ViewModel
                     OrderSide.Sell, SpotOrderType.Limit, Lot, price: SelectedSpotSymbol.Price, 
                     timeInForce: TimeInForce.GoodTillCanceled);
                 if (result.Success)
-                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK, 
-                        MessageBoxImage.Information);
+                {
+                    messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK,
+                       MessageBoxImage.Information);
+                    //SpotOrderId = result.Data.Id;
+                }
                 else
-                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}", 
-                        "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                {
+                    messageBoxService.ShowMessage($"Order placing failed: {result.Error.Message}",
+                       "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                   
             }
+        }
+
+        private void OnSpotOrderUpdate(DataEvent<BinanceStreamOrderUpdate> data)
+        {
+            var spotOrderUpdate = data.Data;
+                        
+            if (spotOrderUpdate.Symbol == null 
+               || spotOrderUpdate.Symbol != SelectedSpotSymbol.Symbol)
+            {
+                return;
+            }
+
+            var symbol = AllSecurityesSpot.SingleOrDefault(a => a.Symbol == spotOrderUpdate.Symbol);
+            if (symbol == null)
+            {
+                return;
+            }
+
+            lock (orderLock)
+            {
+                var order = symbol.SpotOrders.SingleOrDefault(o => o.Id == spotOrderUpdate.Id);
+                if (order == null)
+                {
+                    if (spotOrderUpdate.RejectReason != OrderRejectReason.None || spotOrderUpdate.ExecutionType != ExecutionType.New)
+                        // Order got rejected, no need to show
+                        return;
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        symbol.AddOrder(new OrderSpotVM()
+                        {
+                            ExecutedQuantity = spotOrderUpdate.QuoteQuantityFilled,
+                            Id = spotOrderUpdate.Id,
+                            OriginalQuantity = spotOrderUpdate.Quantity,
+                            Price = spotOrderUpdate.Price,
+                            Side = spotOrderUpdate.Side,
+                            Status = spotOrderUpdate.Status,
+                            Symbol = spotOrderUpdate.Symbol,
+                            Time = spotOrderUpdate.CreateTime,
+                            Type = spotOrderUpdate.Type
+                        });
+                    });
+                }
+                else
+                {
+                    order.ExecutedQuantity = spotOrderUpdate.QuantityFilled;
+                    order.Status = spotOrderUpdate.Status;
+                }
+            }           
+
+        }
+
+        private async Task GetSpotPositions()
+        {
+            if (SelectedSpotSymbol == null)
+            {
+                return;
+            }
+
+            using (var client = new BinanceClient())
+            {
+                var result = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
+
+                if (result.Success)
+                {
+                    SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>();                    
+
+                    if (result.Data.Count() > 0)
+                    {
+                        foreach (var trade in result.Data)
+                        {
+                            if (trade.Symbol == SelectedSpotSymbol.Symbol
+                                && trade.Id > SelectedSpotSymbol.SpotPositions.Last().Id)
+                            {
+                                SelectedSpotSymbol.SpotPositions.Add(new Position()
+                                {
+                                    Id = trade.Id,
+                                    Symbol = trade.Symbol,
+                                    EntryPrice = trade.Price,
+                                    Quantity = trade.Quantity,
+                                    IsMaker = trade.IsMaker,
+                                    IsBuyer = trade.IsBuyer,
+                                    Timestamp = trade.Timestamp
+                                });
+
+                            }
+                        }
+                    }
+                                       
+
+                    if (SelectedSpotSymbol.SpotPositions != null
+                              && SelectedSpotSymbol.SpotPositions.Count > 0)
+                    {
+                        CalculateSpotPosition(SelectedSpotSymbol.SpotPositions);
+                    }
+
+                }
+                else
+                {
+                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
+                       "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+
+            }
+        }
+
+        private void CalculateSpotPosition(ObservableCollection<Position> position)
+        {
+            if (position == null || position.Count == 0)
+            {
+                return;
+            }
+
+            PositonsSpotCount = position.Count;
+
+            if (PositonsSpotCount == 1)
+            {
+                Position pos = position.Last();
+
+                if (pos.Symbol != SelectedSpotSymbol.Symbol)
+                {
+                    return;
+                }
+
+                PositonsSpotSide = pos.PositionSpotSide;
+                SpotEntryPrice = pos.EntryPrice;
+               
+
+                if (pos.PositionSpotSide == PositionSide.Short)
+                {
+                    PositionSpotMargin = (pos.EntryPrice - SelectedSpotSymbol.Price) * pos.Quantity;
+                    PositionSpotQuantity -= pos.Quantity;
+                }
+                else if (pos.PositionSpotSide == PositionSide.Long)
+                {
+                    PositionSpotMargin = (SelectedSpotSymbol.Price - pos.EntryPrice) * pos.Quantity;
+                    PositionSpotQuantity += pos.Quantity;
+                }
+            }
+            else if (PositonsSpotCount > 1)
+            {
+                foreach (Position pos in position)
+                {
+                    if (pos.Symbol != SelectedSpotSymbol.Symbol)
+                    {
+                        return;
+                    }
+
+                    PositonsSpotSide = pos.PositionSpotSide;
+                    SpotEntryPrice = pos.EntryPrice;
+                   
+
+                    if (pos.PositionSpotSide == PositionSide.Short)
+                    {
+                        PositionSpotMargin += (pos.EntryPrice - SelectedSpotSymbol.Price) * pos.Quantity;
+                        PositionSpotQuantity -= pos.Quantity;
+                    }
+                    else if (pos.PositionSpotSide == PositionSide.Long)
+                    {
+                        PositionSpotMargin += (SelectedSpotSymbol.Price - pos.EntryPrice) * pos.Quantity;
+                        PositionSpotQuantity += pos.Quantity;
+                    }
+                }
+            }
+
+
+
         }
 
         private async Task BuyFuturesEmitent (object o)
@@ -830,6 +1227,58 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
+        private void OnFuturesOrderUpdate(DataEvent<BinanceFuturesStreamOrderUpdate> data)
+        {
+            var futuresOrderUpdate = data.Data;
+
+
+            if (futuresOrderUpdate.UpdateData.Symbol == null
+                || futuresOrderUpdate.UpdateData.Symbol != SelectedFuturesSymbol.Symbol)
+            {
+                return;
+            }
+
+            var symbol = AllSecurityesFutures.SingleOrDefault(a => a.Symbol == futuresOrderUpdate.UpdateData.Symbol);
+            if (symbol == null)
+            {
+                return;
+            }
+
+            lock (orderLock)
+            {
+                var order = symbol.FuturesOrders.SingleOrDefault(o => o.Id == futuresOrderUpdate.UpdateData.OrderId);
+                if (order == null)
+                {
+                    if (futuresOrderUpdate.UpdateData.Status != OrderStatus.New
+                        || futuresOrderUpdate.UpdateData.ExecutionType != ExecutionType.New)
+                        // Проверить первое условие!
+                        return;
+
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        symbol.AddOrder(new OrderFuturesVM()
+                        {
+                            Symbol = futuresOrderUpdate.UpdateData.Symbol,
+                            Id = futuresOrderUpdate.UpdateData.OrderId,
+                            Status = futuresOrderUpdate.UpdateData.Status,
+                            Type = futuresOrderUpdate.UpdateData.Type,
+                            Price = futuresOrderUpdate.UpdateData.Price,
+                            Side = futuresOrderUpdate.UpdateData.Side,
+                            Quantity = futuresOrderUpdate.UpdateData.Quantity,
+                            QuantityFilled = futuresOrderUpdate.UpdateData.AccumulatedQuantityOfFilledTrades,
+                            CreateTime = futuresOrderUpdate.TransactionTime
+                        });
+                    });
+                }
+                else
+                {
+                    order.QuantityFilled = futuresOrderUpdate.UpdateData.AccumulatedQuantityOfFilledTrades;
+                    order.Status = futuresOrderUpdate.UpdateData.Status;
+                }
+            }
+        }
+
+
         private async Task GetFuturesPositions()
         {
             if (SelectedFuturesSymbol == null)
@@ -842,17 +1291,36 @@ namespace TestArbitageBotOnAPI.ViewModel
                 var result = await client.UsdFuturesApi.Account.GetPositionInformationAsync(SelectedFuturesSymbol.Symbol);
                 if (result.Success)
                 {
-                    SelectedFuturesSymbol.FuturesPositions = new ObservableCollection<Position>(result.Data.Select(o => new Position()
+                    SelectedFuturesSymbol.FuturesPositions = new ObservableCollection<Position>();
+
+                    if (result.Data.Count() > 0)
                     {
-                        Symbol = o.Symbol,
-                        EntryPrice = o.EntryPrice,
-                        Leverage = o.Leverage,
-                        PositionSide = o.PositionSide,
-                        Quantity = o.Quantity,
-                        LiquidationPrice = o.LiquidationPrice,
-                        MarkPrice = o.MarkPrice                        
-                    }));
-                    CalculateFuturesPosition(SelectedFuturesSymbol.FuturesPositions);
+                        foreach (var trade in result.Data)
+                        {
+                            if (SelectedFuturesSymbol.Symbol == trade.Symbol)
+                            {
+                                SelectedFuturesSymbol.FuturesPositions.Add(new Position()
+                                {
+                                    Symbol = trade.Symbol,
+                                    EntryPrice = trade.EntryPrice,
+                                    Leverage = trade.Leverage,
+                                    PositionSide = trade.PositionSide,
+                                    Quantity = trade.Quantity,
+                                    LiquidationPrice = trade.LiquidationPrice,
+                                    MarkPrice = trade.MarkPrice,
+                                    Timestamp = trade.UpdateTime
+                                });
+
+                            }
+                        }
+                    }
+                    
+
+                    if (SelectedFuturesSymbol.FuturesPositions != null
+                        && SelectedFuturesSymbol.FuturesPositions.Count > 0)
+                    {
+                        CalculateFuturesPosition(SelectedFuturesSymbol.FuturesPositions);
+                    }
                 }
                 else
                 {
@@ -873,43 +1341,109 @@ namespace TestArbitageBotOnAPI.ViewModel
 
             PositonsFuturesCount = position.Count;
 
-            var pos = position.Last();
-
-            if (pos.Symbol != SelectedFuturesSymbol.Symbol)
+            if (PositonsFuturesCount == 1)
             {
-               return;
+                var pos = position.Last();
+
+                if (pos.Symbol != SelectedFuturesSymbol.Symbol)
+                {
+                    return;
+                }
+
+                PositonsFuturesSide = pos.PositionSide;
+                FuturesEntryPrice = pos.EntryPrice;
+               
+
+                if (pos.PositionSide == PositionSide.Short)
+                {
+                    PositionFuturesMargin = (pos.EntryPrice - SelectedFuturesSymbol.Price) * pos.Quantity;
+                    PositionFuturesQuantity -= pos.Quantity;
+                }
+                else if (pos.PositionSide == PositionSide.Long)
+                {
+                    PositionFuturesMargin = (SelectedFuturesSymbol.Price - pos.EntryPrice) * pos.Quantity;
+                    PositionFuturesQuantity += pos.Quantity;
+                }
+            }
+            else if (PositonsSpotCount > 1)
+            {
+                foreach (Position pos in position)
+                {
+                    if (pos.Symbol != SelectedFuturesSymbol.Symbol)
+                    {
+                        return;
+                    }
+
+                    PositonsFuturesSide = pos.PositionSide;
+                    FuturesEntryPrice = pos.EntryPrice;                   
+
+                    if (pos.PositionSide == PositionSide.Short)
+                    {
+                        PositionFuturesMargin += (pos.EntryPrice - SelectedFuturesSymbol.Price) * pos.Quantity;
+                        PositionFuturesQuantity -= pos.Quantity;
+                    }
+                    else if (pos.PositionSide == PositionSide.Long)
+                    {
+                        PositionFuturesMargin += (SelectedFuturesSymbol.Price - pos.EntryPrice) * pos.Quantity;
+                        PositionFuturesQuantity += pos.Quantity;
+                    }
+                }
             }
 
-            PositonsFuturesSide = pos.PositionSide;            
-            FuturesEntryPrice = pos.EntryPrice;
-            PositionFuturesQuantity = pos.Quantity;
 
-            if (pos.PositionSide == PositionSide.Short)
-            {
-                PositionFuturesMargin = (pos.EntryPrice - SelectedFuturesSymbol.Price) * pos.Quantity;
-            }
-            else if (pos.PositionSide == PositionSide.Long)
-            {
-                PositionFuturesMargin = (SelectedFuturesSymbol.Price - pos.EntryPrice) * pos.Quantity;
-            }
+
+
 
         }
 
 
-
-
-        private async Task GetSpotPositions()
-        {
-            if (SelectedSpotSymbol == null)
-            {
-                return;
-            }
-
-
-        }
 
 
         #endregion
+
+
+
+
+
+
+
+
+
+
+        private void OnSpotAccountUpdate(DataEvent<BinanceStreamPositionsUpdate> data)
+        {
+            var pos = data.Data;
+
+          
+        }
+
+        private void OnSpotBalanceUpdate(DataEvent<BinanceStreamBalanceUpdate> data)
+        {
+            var bas = data.Data;
+
+           
+        }
+
+
+      
+
+        private void OnFuturesAccountUpdate(DataEvent<BinanceFuturesStreamAccountUpdate> data)
+        {
+            var pos = data.Data;
+
+            PositonsFuturesCount = pos.UpdateData.Positions.Count();
+
+
+
+        }
+                
+        private void OnFuturesExpiredUpdate(DataEvent<BinanceStreamEvent> data)
+        {
+            var pop = data.Data;
+
+           
+        }
+
 
 
 
@@ -926,88 +1460,6 @@ namespace TestArbitageBotOnAPI.ViewModel
                     messageBoxService.ShowMessage($"Order canceling failed: {result.Error.Message}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-
-
-
-        private async Task SubscribeUserStream()
-        {
-            if (ApiKey == null || ApiSecret == null)
-            {
-                StateOfConnect = "Disconnect";
-                return;
-            }
-            
-
-            using (var client = new BinanceClient())
-            {                
-
-                var startSpotOkay = await client.SpotApi.Account.StartUserStreamAsync();
-                
-                if (!startSpotOkay.Success)
-                {
-                    messageBoxService.ShowMessage($"Error starting user stream: {startSpotOkay.Error.Message}", 
-                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                var startFuturesOkay = await client.UsdFuturesApi.Account.StartUserStreamAsync();
-                if (!startFuturesOkay.Success)
-                {
-                    messageBoxService.ShowMessage($"Error starting user stream: {startFuturesOkay.Error.Message}", 
-                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                if (startSpotOkay.Success && startFuturesOkay.Success)
-                {
-                    StateOfConnect = "Connect";
-                }
-                else
-                {
-                    StateOfConnect = "Disconnect";
-                }
-
-
-                //var subSpotOkay = await socketClientSpot.SpotStreams.SubscribeToUserDataUpdatesAsync(startSpotOkay.Data, OnSpotOrderUpdate, null, 
-                //    /*OnAccountUpdate, */null);
-                //if (!subSpotOkay.Success)
-                //{
-                //    messageBoxService.ShowMessage($"Error subscribing to user stream: {subSpotOkay.Error.Message}", 
-                //        "error", MessageBoxButton.OK, MessageBoxImage.Error);
-                //    return;
-                //}
-
-                //var subFuturesOkay = await socketClientFutures.UsdFuturesStreams.SubscribeToUserDataUpdatesAsync(startFuturesOkay.Data, 
-                //    OnSpotOrderUpdate, null, OnAccountUpdate, null);
-                //if (!subSpotOkay.Success)
-                //{
-                //    messageBoxService.ShowMessage($"Error subscribing to user stream: {subFuturesOkay.Error.Message}", 
-                //        "error", MessageBoxButton.OK, MessageBoxImage.Error);
-                //    return;
-                //}
-
-
-                var accountSpotResult = await client.SpotApi.Account.GetAccountInfoAsync();
-                if (accountSpotResult.Success)
-                    Assets = new ObservableCollection<AssetViewModel>(accountSpotResult.Data.Balances.Where(b => b.Available != 0 | b.Locked != 0).Select(b => new AssetViewModel() 
-                    { Asset = b.Asset, Free = b.Available, Locked = b.Locked }).ToList());
-                else
-                    messageBoxService.ShowMessage($"Error requesting account info: {accountSpotResult.Error.Message}", 
-                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
-
-                var accountFuturesResult = await client.UsdFuturesApi.Account.GetAccountInfoAsync();
-
-
-                //if (accountFuturesResult.Success)
-                //    Assets = new ObservableCollection<AssetViewModel>(accountFuturesResult.Data. Where(b => b.Available != 0 | b.Locked != 0).Select(b => new AssetViewModel() { Asset = b.Asset, Free = b.Available, Locked = b.Locked }).ToList());
-                //else
-                //    messageBoxService.ShowMessage($"Error requesting account info: {accountFuturesResult.Error.Message}", "error", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-
-        }
-
-
-
 
 
 
