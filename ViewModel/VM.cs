@@ -184,7 +184,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                 OnPropertyChanged(nameof(PositonsFuturesCount));
             }
         }
-        private int _positonsFuturesCount;
+        private int _positonsFuturesCount = 0;
 
         public PositionSide PositonsFuturesSide
         {
@@ -273,7 +273,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                 OnPropertyChanged(nameof(PositonsSpotCount));
             }
         }
-        private int _positonsSpotCount;
+        private int _positonsSpotCount = 0;
 
         public PositionSide PositonsSpotSide
         {
@@ -509,8 +509,8 @@ namespace TestArbitageBotOnAPI.ViewModel
         /// Спред, при котором открылась позиция
         /// </summary>
         private decimal _tradeSpread;
-
-        private long SpotOrderId;
+        
+       
 
         #endregion ================
 
@@ -601,6 +601,7 @@ namespace TestArbitageBotOnAPI.ViewModel
         private async void Connect(object obj)
         {
             settings.Close();
+           
 
             if (!string.IsNullOrEmpty(apiKey) && !string.IsNullOrEmpty(apiSecret))
             {
@@ -608,12 +609,27 @@ namespace TestArbitageBotOnAPI.ViewModel
                 {
                     ApiCredentials = new ApiCredentials(apiKey, apiSecret)
                 });
-            }
+            }            
+
             await SubscribeUserStream();
         }        
 
         private async Task SubscribeUserStream()
         {
+            if (SelectedFuturesSymbol == null
+                || SelectedSpotSymbol == null)
+            {
+                StateOfConnect = "Disconnect";
+
+                messageBoxService.ShowMessage("Не выбраны инструменты для торговли!" +
+                    "\nВыберите инструменты до подключения к Binance!" +
+                    "\n\nПоследующая смена инструментов после подключения производится без ограничений.",
+                   "Внимание!", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                return;
+            }
+
+
             if (ApiKey == null || ApiSecret == null)
             {
                 StateOfConnect = "Disconnect";
@@ -628,7 +644,7 @@ namespace TestArbitageBotOnAPI.ViewModel
 
             using (var client = new BinanceClient())
             {
-                var startSpotOkay = await client.SpotApi.Account.StartUserStreamAsync();
+                var startSpotOkay = await client.SpotApi.Account.StartUserStreamAsync();               
 
                 if (!startSpotOkay.Success)
                 {
@@ -638,9 +654,11 @@ namespace TestArbitageBotOnAPI.ViewModel
                 }
 
                 var startFuturesOkay = await client.UsdFuturesApi.Account.StartUserStreamAsync();
+
+                
                 if (!startFuturesOkay.Success)
                 {
-                    messageBoxService.ShowMessage($"Error starting user stream: {startFuturesOkay.Error.Message}",
+                    messageBoxService.ShowMessage($"Error starting user streamm: {startFuturesOkay.Error.Message}",
                         "error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -652,33 +670,37 @@ namespace TestArbitageBotOnAPI.ViewModel
                 else
                 {
                     StateOfConnect = "Disconnect";
-                }
 
-
-                var subSpotOkay = await socketClientSpot.SpotStreams.SubscribeToUserDataUpdatesAsync(startSpotOkay.Data, OnSpotOrderUpdate, null,
-                    OnSpotAccountUpdate, OnSpotBalanceUpdate);
-
-                if (!subSpotOkay.Success)
-                {
-                    messageBoxService.ShowMessage($"Error subscribing to user stream: {subSpotOkay.Error.Message}",
-                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
+
 
 
                 var subFuturesOkay = await socketClientFutures.UsdFuturesStreams.SubscribeToUserDataUpdatesAsync(startFuturesOkay.Data, null,
-                    null, OnFuturesAccountUpdate, OnFuturesOrderUpdate, OnFuturesExpiredUpdate);
+                    null, OnFuturesAccountUpdate, OnFuturesOrderUpdate, null);
 
 
-                if (!subSpotOkay.Success)
+                if (!subFuturesOkay.Success)
                 {
-                    messageBoxService.ShowMessage($"Error subscribing to user stream: {subFuturesOkay.Error.Message}",
+                    messageBoxService.ShowMessage($"Error subscribing to user streammmm: {subFuturesOkay.Error.Message}",
                         "error", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
 
 
+                var subSpotOkay = await socketClientSpot.SpotStreams.SubscribeToUserDataUpdatesAsync(startSpotOkay.Data, OnSpotOrderUpdate, null,
+                    OnSpotAccountUpdate, null);
+
+                if (!subSpotOkay.Success)
+                {
+                    messageBoxService.ShowMessage($"Error subscribing to user streammm: {subSpotOkay.Error.Message}",
+                        "error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+                
+
+                
 
                 var accountSpotResult = await client.SpotApi.Account.GetAccountInfoAsync();
 
@@ -707,6 +729,37 @@ namespace TestArbitageBotOnAPI.ViewModel
             IsRun = !IsRun;
 
             if (IsRun
+                && ApiKey == null || ApiSecret == null)
+            {
+                StateOfConnect = "Disconnect";
+
+                messageBoxService.ShowMessage("Не введены или некорректно введены ApiKey и/или " +
+                    "ApiSecret!\nНет подключения к Binance, торговля невозможна!" +
+                    "\n\nПроверьте настройки бота!",
+                   "Внимание!", MessageBoxButton.OK, MessageBoxImage.Error);
+
+                IsRun = !IsRun;
+
+                return;
+            }
+
+
+            if (IsRun
+                && (BaseSpread == 0
+                || SpreadForTrade == 0
+                || Lot == 0))
+            {
+                MessageBoxResult result = MessageBox.Show("Не заполнены данные для торговли!\nЗаполните параметры BaseSpread, " +
+                    "SpreadForTrade и Lot в настройках бота!\n\nПараметр SpreadForNewTrade может быть равен 0.", "Внимание!", MessageBoxButton.OK);
+
+                if (result == MessageBoxResult.OK)
+                {
+                    IsRun = !IsRun;
+                    return;
+                }                     
+            }
+
+            if (IsRun
                 && (SelectedSpotSymbol != null
                 && SelectedFuturesSymbol != null)
                 && StateOfConnect == "Connect")
@@ -715,7 +768,7 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
             if (!IsRun)
             {
-                this.ChangeSpread -= VM_ChangeSpread;
+                this.ChangeSpread -= VM_ChangeSpread;               
             }
         }
 
@@ -915,7 +968,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                 && spread >= SpreadForTrade)
             {
                 await GetFuturesPositions();
-                await GetSpotPositions();
+                await OnSpotPositonUpdate();
 
                 if (Regim == Regims.ON                
                 && SelectedFuturesSymbol.FuturesPositions != null
@@ -954,6 +1007,8 @@ namespace TestArbitageBotOnAPI.ViewModel
                 await SellSpotEmitent(SelectedSpotSymbol);
                 await BuyFuturesEmitent(SelectedFuturesSymbol);
             }
+            await GetFuturesPositions();
+            await OnSpotPositonUpdate();
         }              
 
         private async Task TradeLogic(decimal spread)
@@ -965,12 +1020,15 @@ namespace TestArbitageBotOnAPI.ViewModel
                 await TradeLogicClose();
             }
             else if (spread > _tradeSpread
+                    && SpreadForNewTrade != 0
                     && SpreadForNewTrade >= сhangeSpreadInPercent
                     && Regim != Regims.ONLI_CLOSE)
             {
                 _tradeSpread = spread;
                 await TradeLogicOpen();
             }
+            await GetFuturesPositions();
+            await OnSpotPositonUpdate();
         }
 
         private async Task TradeLogicClose()
@@ -990,8 +1048,8 @@ namespace TestArbitageBotOnAPI.ViewModel
                 if (result.Success)
                 {
                     messageBoxService.ShowMessage("Order placed!", "Sucess", MessageBoxButton.OK,
-                       MessageBoxImage.Information);
-                    //SpotOrderId = result.Data.Id;
+                       MessageBoxImage.Information);                   
+                    
                 }
                 else
                 {
@@ -1045,13 +1103,14 @@ namespace TestArbitageBotOnAPI.ViewModel
                 var order = symbol.SpotOrders.SingleOrDefault(o => o.Id == spotOrderUpdate.Id);
                 if (order == null)
                 {
-                    if (spotOrderUpdate.RejectReason != OrderRejectReason.None || spotOrderUpdate.ExecutionType != ExecutionType.New)
+                    if (spotOrderUpdate.RejectReason != OrderRejectReason.None 
+                        || spotOrderUpdate.ExecutionType != ExecutionType.New)
                         // Order got rejected, no need to show
                         return;
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
-                        symbol.AddOrder(new OrderSpotVM()
+                        symbol.SpotOrders.Add(new OrderSpotVM()
                         {
                             ExecutedQuantity = spotOrderUpdate.QuoteQuantityFilled,
                             Id = spotOrderUpdate.Id,
@@ -1063,6 +1122,7 @@ namespace TestArbitageBotOnAPI.ViewModel
                             Time = spotOrderUpdate.CreateTime,
                             Type = spotOrderUpdate.Type
                         });
+
                     });
                 }
                 else
@@ -1070,67 +1130,81 @@ namespace TestArbitageBotOnAPI.ViewModel
                     order.ExecutedQuantity = spotOrderUpdate.QuantityFilled;
                     order.Status = spotOrderUpdate.Status;
                 }
-            }           
+            }
 
         }
 
-        private async Task GetSpotPositions()
+        private async Task OnSpotPositonUpdate()
         {
             if (SelectedSpotSymbol == null)
             {
                 return;
             }
-
+            
+            if(SelectedSpotSymbol.SpotPositions == null)
+            {
+                SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>();
+            }
+            
             using (var client = new BinanceClient())
             {
-                var result = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
+                                
+                var spotUserTradesList = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
 
-                if (result.Success)
+                if (!spotUserTradesList.Success)
                 {
-                    SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>();                    
+                    return;
+                }
 
-                    if (result.Data.Count() > 0)
+                foreach (var trade in spotUserTradesList.Data)
+                {
+                    if (trade.Symbol == null
+                        || trade.Symbol != SelectedSpotSymbol.Symbol)
                     {
-                        foreach (var trade in result.Data)
+                        return;
+                    }
+
+                    foreach (var pos in SelectedSpotSymbol.SpotPositions)
+                    {
+                        if(trade.Id == pos.Id)
                         {
-                            if (trade.Symbol == SelectedSpotSymbol.Symbol
-                                && trade.Id > SelectedSpotSymbol.SpotPositions.Last().Id)
-                            {
-                                SelectedSpotSymbol.SpotPositions.Add(new Position()
-                                {
-                                    Id = trade.Id,
-                                    Symbol = trade.Symbol,
-                                    EntryPrice = trade.Price,
-                                    Quantity = trade.Quantity,
-                                    IsMaker = trade.IsMaker,
-                                    IsBuyer = trade.IsBuyer,
-                                    Timestamp = trade.Timestamp
-                                });
-
-                            }
-                        }
+                            return;
+                        }                        
                     }
-                                       
-
-                    if (SelectedSpotSymbol.SpotPositions != null
-                              && SelectedSpotSymbol.SpotPositions.Count > 0)
+                    SelectedSpotSymbol.SpotPositions.Add(new Position()
                     {
-                        CalculateSpotPosition(SelectedSpotSymbol.SpotPositions);
-                    }
+                        Symbol = trade.Symbol,
+                        Id = trade.Id,
+                        EntryPrice = trade.Price,
+                        Quantity = trade.Quantity,
+                        Timestamp = trade.Timestamp,
+                        IsBuyer = trade.IsBuyer,
+                        IsMaker = trade.IsMaker                       
 
-                }
-                else
-                {
-                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
-                       "error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
+                    });
 
+                }         
+        
+            }     
+            
+            if (SelectedSpotSymbol.SpotPositions != null
+                && SelectedSpotSymbol.SpotPositions.Count > 0)
+            {
+                CalculateSpotPosition(SelectedSpotSymbol.SpotPositions);
             }
+       
+           
         }
+
 
         private void CalculateSpotPosition(ObservableCollection<Position> position)
         {
             if (position == null || position.Count == 0)
+            {
+                return;
+            }
+
+            if (position.Count == PositonsSpotCount)
             {
                 return;
             }
@@ -1191,6 +1265,8 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         }
 
+
+
         private async Task BuyFuturesEmitent (object o)
         {
             using (var client = new BinanceClient())
@@ -1249,10 +1325,10 @@ namespace TestArbitageBotOnAPI.ViewModel
                 var order = symbol.FuturesOrders.SingleOrDefault(o => o.Id == futuresOrderUpdate.UpdateData.OrderId);
                 if (order == null)
                 {
-                    if (futuresOrderUpdate.UpdateData.Status != OrderStatus.New
-                        || futuresOrderUpdate.UpdateData.ExecutionType != ExecutionType.New)
-                        // Проверить первое условие!
-                        return;
+                    //if (futuresOrderUpdate.UpdateData.Status != OrderStatus.New
+                    //    || futuresOrderUpdate.UpdateData.ExecutionType != ExecutionType.New)
+                    //    // Проверить первое условие!
+                    //    return;
 
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -1276,7 +1352,10 @@ namespace TestArbitageBotOnAPI.ViewModel
                     order.Status = futuresOrderUpdate.UpdateData.Status;
                 }
             }
+
+
         }
+
 
 
         private async Task GetFuturesPositions()
@@ -1286,48 +1365,54 @@ namespace TestArbitageBotOnAPI.ViewModel
                 return;
             }
 
+            if (SelectedFuturesSymbol.FuturesPositions == null)
+            {
+                SelectedFuturesSymbol.FuturesPositions = new ObservableCollection<Position>();
+            }
+
+            
             using (var client = new BinanceClient())
             {
-                var result = await client.UsdFuturesApi.Account.GetPositionInformationAsync(SelectedFuturesSymbol.Symbol);
-                if (result.Success)
+                var futuresUserTradesList = await client.UsdFuturesApi.Trading.GetUserTradesAsync(SelectedFuturesSymbol.Symbol);
+               
+                if (!futuresUserTradesList.Success)
                 {
-                    SelectedFuturesSymbol.FuturesPositions = new ObservableCollection<Position>();
+                    return;
+                }
 
-                    if (result.Data.Count() > 0)
+                foreach (var trade in futuresUserTradesList.Data)
+                {
+                    if (trade.Symbol == null
+                        || trade.Symbol != SelectedFuturesSymbol.Symbol)
                     {
-                        foreach (var trade in result.Data)
-                        {
-                            if (SelectedFuturesSymbol.Symbol == trade.Symbol)
-                            {
-                                SelectedFuturesSymbol.FuturesPositions.Add(new Position()
-                                {
-                                    Symbol = trade.Symbol,
-                                    EntryPrice = trade.EntryPrice,
-                                    Leverage = trade.Leverage,
-                                    PositionSide = trade.PositionSide,
-                                    Quantity = trade.Quantity,
-                                    LiquidationPrice = trade.LiquidationPrice,
-                                    MarkPrice = trade.MarkPrice,
-                                    Timestamp = trade.UpdateTime
-                                });
+                        return;
+                    }
 
-                            }
+                    foreach (var pos in SelectedFuturesSymbol.FuturesPositions)
+                    {
+                        if (trade.Id == pos.Id)
+                        {
+                            return;
                         }
                     }
-                    
-
-                    if (SelectedFuturesSymbol.FuturesPositions != null
-                        && SelectedFuturesSymbol.FuturesPositions.Count > 0)
+                    SelectedFuturesSymbol.FuturesPositions.Add(new Position()
                     {
-                        CalculateFuturesPosition(SelectedFuturesSymbol.FuturesPositions);
-                    }
-                }
-                else
-                {
-                    messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
-                       "error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                   
+                        Symbol = trade.Symbol,
+                        EntryPrice = trade.Price,
+                        PositionSide = trade.PositionSide,
+                        Quantity = trade.Quantity,
+                        Timestamp = trade.Timestamp,
+                        Id = trade.Id
+                    });
+
+                }      
+           
+            }
+
+            if (SelectedFuturesSymbol.FuturesPositions != null
+                && SelectedFuturesSymbol.FuturesPositions.Count > 0)
+            {
+                CalculateFuturesPosition(SelectedFuturesSymbol.FuturesPositions);
             }
         }
 
@@ -1335,6 +1420,11 @@ namespace TestArbitageBotOnAPI.ViewModel
         private void CalculateFuturesPosition(ObservableCollection<Position> position)
         {
             if (position == null || position.Count == 0)
+            {
+                return;
+            }
+
+            if (position.Count == PositonsFuturesCount)
             {
                 return;
             }
@@ -1389,11 +1479,6 @@ namespace TestArbitageBotOnAPI.ViewModel
                     }
                 }
             }
-
-
-
-
-
         }
 
 
@@ -1412,15 +1497,14 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         private void OnSpotAccountUpdate(DataEvent<BinanceStreamPositionsUpdate> data)
         {
-            var pos = data.Data;
+            
 
           
         }
 
         private void OnSpotBalanceUpdate(DataEvent<BinanceStreamBalanceUpdate> data)
         {
-            var bas = data.Data;
-
+           
            
         }
 
@@ -1429,10 +1513,7 @@ namespace TestArbitageBotOnAPI.ViewModel
 
         private void OnFuturesAccountUpdate(DataEvent<BinanceFuturesStreamAccountUpdate> data)
         {
-            var pos = data.Data;
-
-            PositonsFuturesCount = pos.UpdateData.Positions.Count();
-
+            
 
 
         }
@@ -1460,6 +1541,61 @@ namespace TestArbitageBotOnAPI.ViewModel
                     messageBoxService.ShowMessage($"Order canceling failed: {result.Error.Message}", "Failed", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+
+        //private async Task GetSpotPositions()
+        //{
+        //    if (SelectedSpotSymbol == null)
+        //    {
+        //        return;
+        //    }
+
+        //    using (var client = new BinanceClient())
+        //    {
+        //        var result = await client.SpotApi.Trading.GetUserTradesAsync(SelectedSpotSymbol.Symbol);
+
+        //        if (result.Success)
+        //        {
+        //            SelectedSpotSymbol.SpotPositions = new ObservableCollection<Position>();                    
+
+        //            if (result.Data.Count() > 0)
+        //            {
+        //                foreach (var trade in result.Data)
+        //                {
+        //                    if (trade.Symbol == SelectedSpotSymbol.Symbol
+        //                        && trade.Id > SelectedSpotSymbol.SpotPositions.Last().Id)
+        //                    {
+        //                        SelectedSpotSymbol.SpotPositions.Add(new Position()
+        //                        {
+        //                            Id = trade.Id,
+        //                            Symbol = trade.Symbol,
+        //                            EntryPrice = trade.Price,
+        //                            Quantity = trade.Quantity,
+        //                            IsMaker = trade.IsMaker,
+        //                            IsBuyer = trade.IsBuyer,
+        //                            Timestamp = trade.Timestamp
+        //                        });
+
+        //                    }
+        //                }
+        //            }
+
+
+        //            if (SelectedSpotSymbol.SpotPositions != null
+        //                      && SelectedSpotSymbol.SpotPositions.Count > 0)
+        //            {
+        //                CalculateSpotPosition(SelectedSpotSymbol.SpotPositions);
+        //            }
+
+        //        }
+        //        else
+        //        {
+        //            messageBoxService.ShowMessage($"Error requesting data: {result.Error.Message}",
+        //               "error", MessageBoxButton.OK, MessageBoxImage.Error);
+        //        }
+
+        //    }
+        //}
+
 
 
 

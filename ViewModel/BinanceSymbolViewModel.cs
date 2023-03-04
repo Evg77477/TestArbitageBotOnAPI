@@ -102,7 +102,9 @@ namespace TestArbitageBotOnAPI.ViewModel
             }
         }
 
-        private ObservableCollection<OrderSpotVM> _spotOrders;
+        public List<OrderSpotVM> SpotOrdersForOpen = new List<OrderSpotVM>();
+        public List<OrderSpotVM> SpotOrdersForClose = new List<OrderSpotVM>();
+
         public ObservableCollection<OrderSpotVM> SpotOrders
         {
             get => _spotOrders;
@@ -112,9 +114,10 @@ namespace TestArbitageBotOnAPI.ViewModel
                 OnPropertyChanged(nameof(SpotOrders));
             }
         }
+        private ObservableCollection<OrderSpotVM> _spotOrders = new ObservableCollection<OrderSpotVM>();
 
-        private ObservableCollection<Position>? _spotPositions;
-        public ObservableCollection<Position>? SpotPositions
+        private ObservableCollection<Position> _spotPositions = new ObservableCollection<Position>();
+        public ObservableCollection<Position> SpotPositions
         {
             get => _spotPositions;
             set
@@ -125,7 +128,7 @@ namespace TestArbitageBotOnAPI.ViewModel
         }
 
 
-        private ObservableCollection<OrderFuturesVM> _futuresOrders;
+        private ObservableCollection<OrderFuturesVM> _futuresOrders = new ObservableCollection<OrderFuturesVM>();
         public ObservableCollection<OrderFuturesVM> FuturesOrders
         {
             get => _futuresOrders;
@@ -137,7 +140,7 @@ namespace TestArbitageBotOnAPI.ViewModel
         }
 
 
-        private ObservableCollection<Position> _futuresPositions;
+        private ObservableCollection<Position> _futuresPositions = new ObservableCollection<Position>();
         public ObservableCollection<Position> FuturesPositions
         {
             get => _futuresPositions;
@@ -168,6 +171,12 @@ namespace TestArbitageBotOnAPI.ViewModel
             OnPropertyChanged(nameof(FuturesOrders));
         }
 
+        public void AddPositon(Position position)
+        {
+            SpotPositions.Add(position);
+            SpotPositions.OrderByDescending(o => o.Timestamp); 
+            OnPropertyChanged(nameof(SpotPositions));
+        }
         
     }
 }
